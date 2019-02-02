@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
+from datetime import datetime
 from selenium.webdriver.remote.remote_connection import LOGGER
 import logging
 LOGGER.setLevel(logging.WARNING)
@@ -40,7 +41,7 @@ def p_ids(mydriver):
         print(ii.get_attribute('id'))
     print()
 
-def p_event_titles(mydriver, do_print=True):
+def p_event_titles(mydriver, do_print=False):
     ids = mydriver.find_elements_by_class_name("event-link")
     res = []
     for ii in ids:
@@ -87,7 +88,13 @@ def find_event_signup(event_list):
             link_element = driver.find_element_by_link_text("Sign me up")
             signup_link = link_element.get_attribute('href')
 
-        res.append([title, href, signup, signup_link])
+        date_element = driver.find_element_by_css_selector("h2.event-date.d-block")
+        date_text = date_element.text
+        time_element = driver.find_element_by_css_selector("span.event-timed-block")
+        time_text = time_element.text.replace(" ","")
+        do  = datetime.strptime(date_text, '%A, %d. %B %Y')
+
+        res.append([title, href, signup, signup_link, do, time_text])
     return res
 
 # Login
@@ -100,23 +107,25 @@ login.click()
 driver.get_screenshot_as_file('page_02_after_login.png')
 
 # Load forntpage
-print("###############################")
-print("# Front Page - Recent Events  #")
-print("###############################")
-driver.get(url)
-#scroll_wait(snr=2000, delay=10, href="christmas-party-2018")
-# Print event titles
-p_event_titles(driver)
+if False:
+    print("###############################")
+    print("# Front Page - Recent Events  #")
+    print("###############################")
+    driver.get(url)
+    #scroll_wait(snr=2000, delay=10, href="christmas-party-2018")
+    # Print event titles
+    p_event_titles(driver, do_print=True)
 
 # Go to events
-print("###############################")
-print("# Event calendar              #")
-print("###############################")
-driver.get(url_events)
-#scroll_wait(snr=2000, delay=4, href="")
-# Print event titles
-event_list = p_event_titles(driver)
-signup_list = find_event_signup(event_list)
+if True:
+    print("###############################")
+    print("# Event calendar              #")
+    print("###############################")
+    driver.get(url_events)
+    scroll_wait(snr=2000, delay=4, href="")
+    # Print event titles
+    event_list = p_event_titles(driver, do_print=False)
+    signup_list = find_event_signup(event_list)
 
-for title, href, signup, signup_link in signup_list:
-    print("Signup: %-6s : %-50s  Link: %s"%(signup, title, signup_link))
+    for title, href, signup, signup_link, date, time in signup_list:
+        print("Signup: %-5s %s %s : %-45s  Link: %s"%(signup, date.strftime('%Y-%m-%d'), time, title, signup_link))
