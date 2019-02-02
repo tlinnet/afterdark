@@ -5,9 +5,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from datetime import datetime
-from selenium.webdriver.remote.remote_connection import LOGGER
-import logging
-LOGGER.setLevel(logging.WARNING)
+#from selenium.webdriver.remote.remote_connection import LOGGER
+#import logging
+#LOGGER.setLevel(logging.WARNING)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m',  '--mail', required=True, help="Input your mail")
@@ -123,6 +123,7 @@ if True:
     print("###############################")
     driver.get(url_events)
     scroll_wait(snr=2000, delay=4, href="")
+    driver.get_screenshot_as_file('page_03_events.png')
     # Print event titles
     event_list = p_event_titles(driver, do_print=False)
     signup_list = find_event_signup(event_list)
