@@ -1,4 +1,6 @@
 import argparse
+import sys
+import getpass
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -10,10 +12,17 @@ from datetime import datetime
 #LOGGER.setLevel(logging.WARNING)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-m',  '--mail', required=True, help="Input your mail")
-parser.add_argument('-p',  '--passwd', required=True, help="Input your passwords")
+parser.add_argument('-m',  '--mail', required=False, help="Input your mail")
+parser.add_argument('-p',  '--passwd', required=False, help="Input your passwords")
 parser.add_argument('-c',  '--conf', action='store_true', help="configure")
 args = parser.parse_args()
+
+if args.mail == None:
+    print("Please input your mail")
+    args.mail = input()
+if args.passwd == None:
+    print("Please input your password: This field does not show any keypress.")
+    args.passwd =  getpass.getpass()
 
 #print(args.conf)
 print("Logging in for user: %s"%args.mail)
@@ -106,6 +115,12 @@ login = driver.find_element_by_id('submitButton')
 login.click()
 driver.get_screenshot_as_file('page_02_after_login.png')
 
+title = driver.title
+if title == "Log på":
+    print(title)
+    print("Failed to login")
+    sys.exit()
+
 # Load forntpage
 if False:
     print("###############################")
@@ -130,3 +145,7 @@ if True:
 
     for title, href, signup, signup_link, date, time in signup_list:
         print("Signup: %-5s %s %s : %-45s  Link: %s"%(signup, date.strftime('%Y-%m-%d'), time, title, signup_link))
+
+print("\nDone")
+#print("\nPress any key to exit")
+#x = input()
