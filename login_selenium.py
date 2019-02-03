@@ -1,11 +1,11 @@
-import getpass, json, sys, os, os.path, time
+import getpass, json, sys, time, random, os, os.path
 from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
-
+from urllib3.exceptions import MaxRetryError
 
 
 def get_credentials():
@@ -16,12 +16,10 @@ def get_credentials():
     args = parser.parse_args()
 
     if args.mail == None:
-        print("Please input your mail")
-        args.mail = input()
+        args.mail = input("Please input your mail: ")
     if args.passwd == None:
         print("Please input your password: This field does not show any keypress.")
         args.passwd =  getpass.getpass()
-
     return args.mail, args.passwd
 
 class Afterdark:
@@ -32,9 +30,10 @@ class Afterdark:
         self.url = "https://afterdark.netcompany.com/"
         self.url_events = "https://afterdark.netcompany.com/event-calendar/"
 
-        self.waittime = 1 # min
+        self.waittime_min = 3 # min
+        self.waittime_max = 10 # min
         self.sleeptime = 10 # s
-        self.looptime = datetime.now() + timedelta(minutes=self.waittime)
+        self.looptime = datetime.now() + timedelta(minutes=random.randint(self.waittime_min,self.waittime_max))
 
         self.driver = None
         self.use_driver = "chrome"
@@ -178,7 +177,7 @@ class Afterdark:
         while datetime.now() < self.looptime:
             print("Sleeping until %s > %s"% (datetime.now().strftime('%H:%M:%S'), self.looptime.strftime('%H:%M:%S')) )
             time.sleep(self.sleeptime)
-        self.looptime = datetime.now() + timedelta(minutes=self.waittime)
+        self.looptime = datetime.now() + timedelta(minutes=random.randint(self.waittime_min,self.waittime_max))
         print()
 
     def make_conf(self):
@@ -199,17 +198,21 @@ class Afterdark:
 
 if __name__ == "__main__":
     mail, passwd = get_credentials()
-    Ad = Afterdark(mail, passwd)
-    Ad.login()
-    Ad.list_event_calendar()
     while True:
         try:
-            print()
-            print("Hit 'Ctrl+c' to Exit or make configurations")
-            Ad.loop_time()
-            Ad.list_event_calendar()
-        except (KeyboardInterrupt, SystemExit):
-            Ad.make_conf()
+            Ad = Afterdark(mail, passwd)
+            #Ad.login()
+            #Ad.list_event_calendar()
+            while True:
+                try:
+                    print()
+                    print("Hit 'Ctrl+c' to Exit or make configurations")
+                    Ad.loop_time()
+                    #Ad.list_event_calendar()
+                except (KeyboardInterrupt, SystemExit):
+                    Ad.make_conf()
+        except(MaxRetryError):
+            print("Logging in again")
     
     print("\nDone")
     #print("\nPress any key to exit")
