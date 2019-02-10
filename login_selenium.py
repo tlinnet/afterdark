@@ -29,21 +29,25 @@ class Afterdark:
 
         self.url = "https://afterdark.netcompany.com/"
         self.url_events = "https://afterdark.netcompany.com/event-calendar/"
+        self.url_events_cph = "https://afterdark.netcompany.com/event-calendar/?event_city=copenhagen"        
 
-        self.waittime_min = 3 # min
-        self.waittime_max = 10 # min
+        self.waittime_min = 1 # min
+        self.waittime_max = 2 # min
         self.sleeptime = 10 # s
         self.looptime = datetime.now() + timedelta(minutes=random.randint(self.waittime_min,self.waittime_max))
 
         self.driver = None
         self.use_driver = "chrome"
         #self.use_driver = "phantom"
+        self.title_log_pa = "Log på"
+        self.title_ad = "NC After Dark"
 
     def start_driver(self):
         if self.driver == None:
-            #print("Driver starting")
+            print("Driver starting")
             if self.use_driver == "phantom":
                 self.driver = webdriver.PhantomJS()
+                print("PhantomJS driver started")
             else:
                 options = webdriver.ChromeOptions()
                 options.add_argument('headless')
@@ -51,29 +55,56 @@ class Afterdark:
                 #options.add_argument('--disable-extensions')
                  #options.add_argument('window-size=1200x600')
                 self.driver = webdriver.Chrome(options=options)
+                print("Chrome driver started")
 
     # Login
     def login(self):
         self.start_driver()
+        print("Trying to login")
         self.driver.get(self.url)
-        title = self.driver.title
-        print(title)
-        if title == "Log på":
-            print("Logging in for user: %s"%self.mail)
-            username = self.driver.find_element_by_id('userNameInput').send_keys(self.mail)
-            password = self.driver.find_element_by_id('passwordInput').send_keys(self.passwd)
-            self.driver.get_screenshot_as_file('page_01_login.png')
-            login = self.driver.find_element_by_id('submitButton')
-            login.click()
-            self.driver.get_screenshot_as_file('page_02_after_login.png')
+        print("Trying to login after GET: %s"%self.url)
+        try:
+            print("Trying %s"%self.url)
+            WebDriverWait(self.driver, 10).until(lambda x: self.driver.title in [self.title_log_pa, self.title_ad])
 
-        title = self.driver.title
-        if title == "Log på":
-            print(title)
-            print("Failed to login")
-            sys.exit()
+            if self.driver.title == self.title_log_pa:
+                print("Logging in for user: %s"%self.mail)
+                username = self.driver.find_element_by_id('userNameInput').send_keys(self.mail)
+                password = self.driver.find_element_by_id('passwordInput').send_keys(self.passwd)
+                self.driver.get_screenshot_as_file('page_01_login.png')
+                login = self.driver.find_element_by_id('submitButton')
+                login.click()
+                self.driver.get_screenshot_as_file('page_02_after_login.png')
 
-    def scroll_wait(self, snr=1000, delay=10, href="christmas-party-2018"):
+            if self.driver.title == self.title_log_pa:
+                print(title)
+                print("Failed to login")
+                sys.exit(1)
+            else:
+                print("Success in login")
+        except TimeoutException as e:
+            print("Cant get to login: '%s''"%(self.title_log_pa))
+            print("It is: '%s'"%(self.driver.title))
+            sys.exit(1)
+
+    def scroll_wait(self):
+        lenOfPage = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
+        lenOfPage = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
+        match=False
+        sleep_max = 30
+        sleep_count = 0
+        sleep_i = 3
+        while(match==False):
+            lastCount = lenOfPage
+            sleep_count += sleep_i
+            time.sleep(sleep_i)
+            lenOfPage = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
+            print("Scrolling through event page at px:%i"%lenOfPage)
+            if lastCount==lenOfPage or sleep_count > sleep_max:
+                match=True
+                print("Found all events on page. Visit each Event page to get status.\n")
+
+    def scroll_wait_href(self, snr=1000, delay=10, href="christmas-party-2018"):
         snr_tot = snr
         delay_i = 0
         delay_per_round = 1
@@ -81,10 +112,10 @@ class Afterdark:
         found = False
         while not found and delay_i < delay:
             try:
-                #myElem = WebDriverWait(browser, delay).until(EC.presence_of_element_located((By.ID, 'IdOfMyElement')))
-                myElem = WebDriverWait(self.driver, delay_per_round).until(EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='%s']"%href)))
-                #myElem = WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.XPATH, ".//a[contains(@href,'christmas-party-2018')]")))
-                #myElem = WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.XPATH, ".//a[contains(@href,'end-of-season-celebration')]")))
+                #WebDriverWait(browser, delay).until(EC.presence_of_element_located((By.ID, 'IdOfMyElement')))
+                WebDriverWait(self.driver, delay_per_round).until(EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='%s']"%href)))
+                #WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.XPATH, ".//a[contains(@href,'christmas-party-2018')]")))
+                #WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.XPATH, ".//a[contains(@href,'end-of-season-celebration')]")))
                 #print("Page is ready!\n")
                 found = True
             except TimeoutException:
@@ -142,7 +173,7 @@ class Afterdark:
         print("# Front Page - Recent Events  #")
         print("###############################")
         self.driver.get(self.url)
-        #self.scroll_wait(snr=2000, delay=10, href="christmas-party-2018")
+        #self.scroll_wait_href(snr=2000, delay=10, href="christmas-party-2018")
         # Print event titles
         p_event_titles(do_print=True)
 
@@ -151,11 +182,12 @@ class Afterdark:
         print("###############################")
         print("# Event calendar              #")
         print("###############################")
-        self.driver.get(self.url_events)
-        self.scroll_wait(snr=2000, delay=4, href="")
+        self.driver.get(self.url_events_cph)
+        #self.scroll_wait_href(snr=2000, delay=10, href="")
+        self.scroll_wait()
         self.driver.get_screenshot_as_file('page_03_events.png')
         # Print event titles
-        event_list = self.p_event_titles(do_print=False)
+        event_list = self.p_event_titles(do_print=True)
         signup_list = self.find_event_signup(event_list)
 
         for title, href, signup, signup_link, date, time in signup_list:
@@ -180,7 +212,7 @@ class Afterdark:
         self.looptime = datetime.now() + timedelta(minutes=random.randint(self.waittime_min,self.waittime_max))
         print()
 
-    def make_conf(self):
+    def make_conf_menu(self):
         print()
         print("1: Continue ")
         print("2: Make configurations")
@@ -201,18 +233,22 @@ if __name__ == "__main__":
     while True:
         try:
             Ad = Afterdark(mail, passwd)
-            #Ad.login()
-            #Ad.list_event_calendar()
+            Ad.login()
+            Ad.list_event_calendar()
             while True:
                 try:
                     print()
                     print("Hit 'Ctrl+c' to Exit or make configurations")
                     Ad.loop_time()
-                    #Ad.list_event_calendar()
+                    Ad.list_event_calendar()
                 except (KeyboardInterrupt, SystemExit):
-                    Ad.make_conf()
+                    Ad.make_conf_menu()
         except(MaxRetryError):
             print("Logging in again")
+            self.looptime = datetime.now() + timedelta(minutes=random.randint(self.waittime_min,self.waittime_max)) + timedelta(minutes=60)
+            while datetime.now() < self.looptime:
+                print("Sleeping until %s > %s"% (datetime.now().strftime('%H:%M:%S'), self.looptime.strftime('%H:%M:%S')) )
+                time.sleep(self.sleeptime)
     
     print("\nDone")
     #print("\nPress any key to exit")
